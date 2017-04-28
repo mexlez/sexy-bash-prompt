@@ -15,17 +15,22 @@ if tput setaf 1 &> /dev/null; then
   # done
 
   # Save common color actions
-  sexy_bash_prompt_bold="$(tput bold)"
+  #sexy_bash_prompt_bold="$(tput bold)"
+  sexy_bash_prompt_bold=""
   sexy_bash_prompt_reset="$(tput sgr0)"
 
   # If the terminal supports at least 256 colors, write out our 256 color based set
   if [[ "$(tput colors)" -ge 256 ]] &> /dev/null; then
-    sexy_bash_prompt_user_color="$sexy_bash_prompt_bold$(tput setaf 27)" # BOLD BLUE
-    sexy_bash_prompt_preposition_color="$sexy_bash_prompt_bold$(tput setaf 7)" # BOLD WHITE
-    sexy_bash_prompt_device_color="$sexy_bash_prompt_bold$(tput setaf 39)" # BOLD CYAN
-    sexy_bash_prompt_dir_color="$sexy_bash_prompt_bold$(tput setaf 76)" # BOLD GREEN
+    sexy_bash_prompt_time_color="$(tput setaf 001)" # TEAL
+    sexy_bash_prompt_user_color="$sexy_bash_prompt_bold$(tput setaf 178)" # BOLD BLUE
+    sexy_bash_prompt_preposition_color="$sexy_bash_prompt_bold$(tput setaf 250)" # GREY
+    sexy_bash_prompt_device_color="$sexy_bash_prompt_bold$(tput setaf 027)" # DARK BLUE
+    sexy_bash_prompt_dir_color="$sexy_bash_prompt_bold$(tput setaf 202)" # BOLD ORANGE
     sexy_bash_prompt_git_status_color="$sexy_bash_prompt_bold$(tput setaf 154)" # BOLD YELLOW
     sexy_bash_prompt_git_progress_color="$sexy_bash_prompt_bold$(tput setaf 9)" # BOLD RED
+    sexy_bash_prompt_git_clean_color="$sexy_bash_prompt_bold$(tput setaf 76)" # BOLD GREEN
+    sexy_bash_prompt_git_dirty_warn_color="$sexy_bash_prompt_bold$(tput setaf 9)" # BOLD RED
+    sexy_bash_prompt_git_dirty_info_color="$sexy_bash_prompt_bold$(tput setaf 154)" # BOLD YELLOW
   else
   # Otherwise, use colors from our set of 8
     sexy_bash_prompt_user_color="$sexy_bash_prompt_bold$(tput setaf 4)" # BOLD BLUE
@@ -34,6 +39,9 @@ if tput setaf 1 &> /dev/null; then
     sexy_bash_prompt_dir_color="$sexy_bash_prompt_bold$(tput setaf 2)" # BOLD GREEN
     sexy_bash_prompt_git_status_color="$sexy_bash_prompt_bold$(tput setaf 3)" # BOLD YELLOW
     sexy_bash_prompt_git_progress_color="$sexy_bash_prompt_bold$(tput setaf 1)" # BOLD RED
+    sexy_bash_prompt_git_clean_color="$sexy_bash_prompt_bold$(tput setaf 2)" # BOLD GREEN
+    sexy_bash_prompt_git_dirty_warn_color="$sexy_bash_prompt_bold$(tput setaf 1)" # BOLD RED
+    sexy_bash_prompt_git_dirty_info_color="$sexy_bash_prompt_bold$(tput setaf 4)" # BOLD BLUE
   fi
 
   sexy_bash_prompt_symbol_color="$sexy_bash_prompt_bold" # BOLD
@@ -222,22 +230,47 @@ function sexy_bash_prompt_get_git_status() {
 
   # Iterate through all the cases and if it matches, then echo
   if [[ "$dirty_branch" == 1 && "$branch_ahead" == 1 && "$branch_behind" == 1 ]]; then
-    echo "$sexy_bash_prompt_dirty_unpushed_unpulled_symbol"
+    output="$sexy_bash_prompt_git_dirty_info_color\
+$output\
+$1\
+$sexy_bash_prompt_dirty_unpushed_unpulled_symbol"
   elif [[ "$branch_ahead" == 1 && "$branch_behind" == 1 ]]; then
-    echo "$sexy_bash_prompt_unpushed_unpulled_symbol"
+    output="$sexy_bash_prompt_git_dirty_info_color\
+$output\
+$1\
+$sexy_bash_prompt_unpushed_unpulled_symbol"
   elif [[ "$dirty_branch" == 1 && "$branch_ahead" == 1 ]]; then
-    echo "$sexy_bash_prompt_dirty_unpushed_symbol"
+    output="$sexy_bash_prompt_git_dirty_info_color\
+$output\
+$1\
+$sexy_bash_prompt_dirty_unpushed_symbol"
   elif [[ "$branch_ahead" == 1 ]]; then
-    echo "$sexy_bash_prompt_unpushed_symbol"
+    output="$sexy_bash_prompt_git_dirty_info_color\
+$output\
+$1\
+$sexy_bash_prompt_unpushed_symbol"
   elif [[ "$dirty_branch" == 1 && "$branch_behind" == 1 ]]; then
-    echo "$sexy_bash_prompt_dirty_unpulled_symbol"
+    output="$sexy_bash_prompt_git_dirty_warn_color\
+$output\
+$1\
+$sexy_bash_prompt_dirty_unpulled_symbol"
   elif [[ "$branch_behind" == 1 ]]; then
-    echo "$sexy_bash_prompt_unpulled_symbol"
+    output="$sexy_bash_prompt_git_dirty_warn_color\
+$output\
+$1\
+$sexy_bash_prompt_unpulled_symbol"
   elif [[ "$dirty_branch" == 1 ]]; then
-    echo "$sexy_bash_prompt_dirty_synced_symbol"
+    output="$sexy_bash_prompt_git_dirty_info_color\
+$output\
+$1\
+$sexy_bash_prompt_dirty_synced_symbol"
   else # clean
-    echo "$sexy_bash_prompt_synced_symbol"
+    output="$sexy_bash_prompt_git_clean_color\
+$output\
+$1\
+$sexy_bash_prompt_synced_symbol"
   fi
+  echo "$output$sexy_bash_prompt_reset"
 }
 
 sexy_bash_prompt_get_git_info () {
@@ -246,11 +279,8 @@ sexy_bash_prompt_get_git_info () {
 
   # If there are any branches
   if [[ "$branch" != "" ]]; then
-    # Echo the branch
-    output="$branch"
-
     # Add on the git status
-    output="$output$(sexy_bash_prompt_get_git_status)"
+    output="$(sexy_bash_prompt_get_git_status $branch)"
 
     # Echo our output
     echo "$output"
@@ -258,14 +288,15 @@ sexy_bash_prompt_get_git_info () {
 }
 
 # Define the sexy-bash-prompt
-PS1="\[$sexy_bash_prompt_user_color\]\u\[$sexy_bash_prompt_reset\] \
-\[$sexy_bash_prompt_preposition_color\]at\[$sexy_bash_prompt_reset\] \
-\[$sexy_bash_prompt_device_color\]\h\[$sexy_bash_prompt_reset\] \
-\[$sexy_bash_prompt_preposition_color\]in\[$sexy_bash_prompt_reset\] \
+PS1="\[$sexy_bash_prompt_time_color\][\D{%I:%M:%S%p}]\[$sexy_bash_prompt_reset\]\
+\[$sexy_bash_prompt_user_color\]\u\[$sexy_bash_prompt_reset\]\
+\[$sexy_bash_prompt_preposition_color\]@\[$sexy_bash_prompt_reset\]\
+\[$sexy_bash_prompt_device_color\]\h\[$sexy_bash_prompt_reset\]\
+\[$sexy_bash_prompt_preposition_color\][\[$sexy_bash_prompt_reset\]\
 \[$sexy_bash_prompt_dir_color\]\w\[$sexy_bash_prompt_reset\]\
 \$( sexy_bash_prompt_is_on_git && \
-  echo -n \" \[$sexy_bash_prompt_preposition_color\]on\[$sexy_bash_prompt_reset\] \" && \
+  echo -n \"\[$sexy_bash_prompt_preposition_color\]|\[$sexy_bash_prompt_reset\]\" && \
   echo -n \"\[$sexy_bash_prompt_git_status_color\]\$(sexy_bash_prompt_get_git_info)\" && \
   echo -n \"\[$sexy_bash_prompt_git_progress_color\]\$(sexy_bash_prompt_get_git_progress)\" && \
-  echo -n \"\[$sexy_bash_prompt_preposition_color\]\")\n\[$sexy_bash_prompt_reset\]\
+  echo -n \"\[$sexy_bash_prompt_preposition_color\]\")]\n\[$sexy_bash_prompt_reset\]\
 \[$sexy_bash_prompt_symbol_color\]$sexy_bash_prompt_symbol \[$sexy_bash_prompt_reset\]"
